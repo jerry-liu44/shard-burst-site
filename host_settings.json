@@ -1,0 +1,8 @@
+{
+ "onsetSensitivity": 1.6,
+ "autoGain": 8,
+ "bandCurve": 1.4,
+ "dropQuiet": 1.5,
+ "dropThreshold": 0.65,
+ "volume": 1.5
+}
