@@ -1,9 +1,50 @@
 {
   "note": "The four default tracks every visitor starts with. To use a real track, put the audio file in this folder (web/tracks/) and set its \"file\", e.g. \"tracks/nightfall.mp3\", and its \"name\" (shown in the HUD, keep it short). With no file, the slot plays a synthesized placeholder made from \"synth\". A visitor's own dropped track replaces a slot in their browser only; RESTORE DEFAULT brings this one back.",
   "slots": [
-    { "name": "PULSE", "file": "", "synth": { "bpm": 120, "bass": 55, "kick": 120, "secs": 8, "hats": 0.3 } },
-    { "name": "DRIFT", "file": "", "synth": { "bpm": 84, "bass": 49, "kick": 100, "secs": 10, "hats": 0.15 } },
-    { "name": "SURGE", "file": "", "synth": { "bpm": 140, "bass": 62, "kick": 130, "secs": 12, "hats": 0.4, "drop": 3 } },
-    { "name": "HALFTIME", "file": "", "synth": { "bpm": 75, "bass": 41, "kick": 90, "secs": 10, "hats": 0.25 } }
+    {
+      "name": "DROPZONE",
+      "file": "tracks/Dropzone.mp3",
+      "synth": {
+        "bpm": 120,
+        "bass": 55,
+        "kick": 120,
+        "secs": 8,
+        "hats": 0.3
+      }
+    },
+    {
+      "name": "MIDNIGHT OIL",
+      "file": "tracks/Midnight_Oil.mp3",
+      "synth": {
+        "bpm": 84,
+        "bass": 49,
+        "kick": 100,
+        "secs": 10,
+        "hats": 0.15
+      }
+    },
+    {
+      "name": "BASHER",
+      "file": "tracks/Basher.mp3",
+      "synth": {
+        "bpm": 140,
+        "bass": 62,
+        "kick": 130,
+        "secs": 12,
+        "hats": 0.4,
+        "drop": 3
+      }
+    },
+    {
+      "name": "MACH6",
+      "file": "tracks/Mach6.mp3",
+      "synth": {
+        "bpm": 75,
+        "bass": 41,
+        "kick": 90,
+        "secs": 10,
+        "hats": 0.25
+      }
+    }
   ]
 }

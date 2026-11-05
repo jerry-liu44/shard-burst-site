@@ -12,12 +12,15 @@ const DB_NAME = 'shardburst';
 const STORE = 'tracks';
 const ACTIVE_KEY = 'shardburst.playlist.active';
 
+// Browser storage can stall (a pending delete, some private modes): give up after 2 s so the
+// default tracks still show; dropped tracks just aren't kept for that visit.
 function idb() {
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('browser storage did not open')), 2000);
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => { clearTimeout(timer); resolve(req.result); };
+    req.onerror = () => { clearTimeout(timer); reject(req.error); };
   });
 }
 
@@ -47,7 +50,8 @@ export class Playlist {
 
   async open(configUrl = 'tracks/tracks.json') {
     try {
-      const cfg = await fetch(configUrl).then((r) => (r.ok ? r.json() : null));
+      // no-cache: check for a newer list every visit (GitHub Pages lets browsers reuse files for 10 min)
+      const cfg = await fetch(configUrl, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null));
       (cfg?.slots || []).slice(0, SLOTS).forEach((d, i) => { this.defaults[i] = d; });
     } catch (e) {
       console.warn('playlist: no default tracks (tracks/tracks.json)', e);
