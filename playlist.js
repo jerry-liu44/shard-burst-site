@@ -7,7 +7,7 @@
 // change the site for anyone else; "restore default" puts the slot's default back.
 import { makeTestTrack } from './test_track.js';
 
-export const SLOTS = 4;
+export const SLOTS = 8;
 const DB_NAME = 'shardburst';
 const STORE = 'tracks';
 const ACTIVE_KEY = 'shardburst.playlist.active';

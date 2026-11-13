@@ -25,6 +25,13 @@ function bindViewModel(instance) {
   props.drop = vm.trigger('drop');
   props.playToggle = vm.trigger('playToggle');
   props.playToggle?.on(togglePlay);
+  // seed: a new version of the form (rive/form/variation.as); ?seed=1234 opens on that one
+  props.seed = vm.number('seed');
+  props.seedUp = vm.trigger('seedUp');
+  props.seedDown = vm.trigger('seedDown');
+  props.seedRandom = vm.trigger('seedRandom');
+  const askedSeed = parseInt(new URLSearchParams(location.search).get('seed'), 10);
+  if (props.seed && askedSeed >= 0) props.seed.value = Math.min(askedSeed, 9999);
   // playlist: the Hud's TRACK buttons write playlist/slot
   props.slot = vm.number('playlist/slot');
   for (let n = 1; n <= SLOTS; n++) {
@@ -196,7 +203,8 @@ requestAnimationFrame(tick);
 
 // ---------------------------------------------------------------- controls
 
-// Keys: space play/pause, F form, T theme, Q quality tier, D debug panel, 1-4 track slots.
+// Keys: space play/pause, F form, T theme, Q quality tier, D debug panel, 1-8 track slots,
+// R random seed, [ and ] step the seed.
 window.addEventListener('keydown', (e) => {
   if (!vm || e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
@@ -206,6 +214,9 @@ window.addEventListener('keydown', (e) => {
   if (k === 'q') setEnum('qualityTier', props.qualityTier.value === 'low' ? 'high' : 'low');
   if (k === 'd' && props.showDebug) props.showDebug.value = !props.showDebug.value;
   if (k >= '1' && k <= String(SLOTS)) selectSlot(Number(k));
+  if (k === 'r') props.seedRandom?.trigger();
+  if (k === '[') props.seedDown?.trigger();
+  if (k === ']') props.seedUp?.trigger();
 });
 
 // Accent picker (the brief: the accent colour is user-editable).
