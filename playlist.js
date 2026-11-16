@@ -1,13 +1,18 @@
-// Four track slots. Each has a default track (tracks/tracks.json: a real file, or a
-// synthesized placeholder), and a visitor can drop their own over any slot:
+// Eight track slots. Each has a default track (tracks/tracks.json): an audio file, or a
+// procedural song ("proc": 1-4) that the Rive file plays itself (rive/audio/proc_player.as),
+// and a visitor can drop their own over any slot:
 //   - drop one file anywhere: it replaces the slot that's playing,
-//   - drop several: they fill slots 1, 2, 3, 4 in order,
+//   - drop several: they fill the slots in order from 1,
 //   - drop onto a slot row (previewer): that slot.
 // A visitor's own tracks are kept in their browser (IndexedDB), never uploaded, and never
 // change the site for anyone else; "restore default" puts the slot's default back.
 import { makeTestTrack } from './test_track.js';
 
 export const SLOTS = 8;
+
+// Procedural songs need a cross-origin isolated page (web/coi.js on GitHub Pages); without it
+// their slots show as empty.
+export const PROC_OK = typeof window !== 'undefined' && window.crossOriginIsolated === true;
 const DB_NAME = 'shardburst';
 const STORE = 'tracks';
 const ACTIVE_KEY = 'shardburst.playlist.active';
@@ -72,7 +77,18 @@ export class Playlist {
     return this;
   }
 
-  has(n) { return n >= 1 && n <= SLOTS && !!(this.custom[n - 1] || this.defaults[n - 1]); }
+  has(n) {
+    if (n < 1 || n > SLOTS) return false;
+    if (this.custom[n - 1]) return true;
+    const d = this.defaults[n - 1];
+    return !!d && (!d.proc || d.file || PROC_OK);
+  }
+  // The procedural song (1-4) slot n plays, or 0 when it plays a file.
+  proc(n) {
+    if (!this.has(n) || this.custom[n - 1]) return 0;
+    const d = this.defaults[n - 1];
+    return d.proc && !d.file ? d.proc : 0;
+  }
   isCustom(n) { return n >= 1 && n <= SLOTS && !!this.custom[n - 1]; }
   name(n) {
     if (!this.has(n)) return '';
@@ -83,7 +99,7 @@ export class Playlist {
 
   // The audio for slot n: the visitor's own track, else the default (fetched or synthesized once).
   async file(n) {
-    if (!this.has(n)) return null;
+    if (!this.has(n) || this.proc(n)) return null;
     if (this.custom[n - 1]) return this.custom[n - 1].file;
     if (this.cache[n - 1]) return this.cache[n - 1];
     const d = this.defaults[n - 1];

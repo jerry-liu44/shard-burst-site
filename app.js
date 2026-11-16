@@ -1,6 +1,9 @@
 // Shard Burst host page: loads the signed .riv, owns the file drop and playback,
 // and writes audio analysis into the view model (BRIEF sections 2 and 9).
 // Rive owns everything you see, including the drop-zone states.
+// Procedural slots (tracks.json "proc", tracks 5-8): the page hands them to the Rive file
+// (playlist/proc), which plays them and drives the visuals itself until the page takes the slot
+// back; the page only names them.
 import { AudioAnalyser, HOST_DEFAULTS, SPECTRUM_BANDS } from './audio.js';
 import { makeTestTrack } from './test_track.js';
 import { Playlist, SLOTS } from './playlist.js';
@@ -24,7 +27,10 @@ function bindViewModel(instance) {
   props.transient = vm.trigger('transient');
   props.drop = vm.trigger('drop');
   props.playToggle = vm.trigger('playToggle');
-  props.playToggle?.on(togglePlay);
+  props.playToggle?.on(hudToggle);
+  props.proc = vm.number('playlist/proc');
+  props.procPlay = vm.boolean('playlist/procPlay');
+  props.procVolume = vm.number('playlist/procVolume');
   // seed: a new version of the form (rive/form/variation.as); ?seed=1234 opens on that one
   props.seed = vm.number('seed');
   props.seedUp = vm.trigger('seedUp');
@@ -42,7 +48,11 @@ function bindViewModel(instance) {
   props.bands = [];
   for (let b = 1; b <= SPECTRUM_BANDS; b++) props.bands.push(vm.number('spectrum/b' + b));
   props.seekTo = vm.number('seekTo');
-  vm.trigger('seek')?.on(() => { if (props.seekTo) audio.seek(props.seekTo.value); write('progress', audio.progress, 0); });
+  vm.trigger('seek')?.on(() => {
+    if (procActive) return;     // the Rive file seeks its own songs
+    if (props.seekTo) audio.seek(props.seekTo.value);
+    write('progress', audio.progress, 0);
+  });
   props.custom = vm.boolean('playlist/custom');
   props.dropHint = vm.string('playlist/dropHint');
   vm.trigger('playlist/restore')?.on(() => restoreSlot(playlist.active));
@@ -82,16 +92,46 @@ function syncBackground() {
 
 // ---------------------------------------------------------------- audio
 
+// The procedural song the Rive file is playing for the active slot (1-4), or 0.
+let procActive = 0;
+const isPlaying = () => procActive ? props.audioState?.value === 'playing' : audio.playing;
+
+// Play / pause: the page's own audio, or, for a procedural slot, the Rive file's (through the
+// same trigger the drop zone fires).
 async function togglePlay() {
+  if (procActive) { props.playToggle?.trigger(); return; }
   if (!audio.loaded) return;
   const playing = await audio.toggle();
   setEnum('audioState', playing ? 'playing' : 'paused');
 }
+// The drop zone's click (playToggle): the Rive file answers it itself for procedural slots.
+function hudToggle() { if (!procActive) togglePlay(); }
 
-// Play slot n (1-4). Keeps playing if something was playing, unless play says otherwise.
+function handBack() {
+  if (!procActive) return;
+  procActive = 0;
+  if (props.proc) props.proc.value = 0;
+}
+
+// Play slot n (1-8). Keeps playing if something was playing, unless play says otherwise.
 // An empty slot is ignored and the buttons go back to the playing slot.
-async function selectSlot(n, play = audio.playing) {
+async function selectSlot(n, play = isPlaying()) {
   if (!playlist.has(n)) { writePlaylist(); return; }
+  const k = playlist.proc(n);
+  if (k) {
+    // a procedural song: the Rive file plays it
+    if (audio.playing) await audio.toggle();
+    playlist.setActive(n);
+    if (props.trackName) props.trackName.value = playlist.name(n);
+    if (props.procVolume) props.procVolume.value = audio.settings.volume;
+    if (props.procPlay) props.procPlay.value = !!play;
+    if (procActive === k && props.proc) props.proc.value = 0;   // the same song again: restart it
+    procActive = k;
+    if (props.proc) props.proc.value = k;
+    if (!play) setEnum('audioState', 'loaded');
+    return;
+  }
+  handBack();
   const file = await playlist.file(n);
   if (!file) { writePlaylist(); return; }
   audio.load(file);
@@ -104,7 +144,7 @@ async function selectSlot(n, play = audio.playing) {
 // Put slot n's default track back (the Hud's RESTORE DEFAULT, the previewer's ↺).
 async function restoreSlot(n) {
   if (!playlist.isCustom(n)) return;
-  const wasPlaying = audio.playing;
+  const wasPlaying = isPlaying();
   await playlist.restore(n);
   if (n === playlist.active) await selectSlot(n, wasPlaying);
 }
@@ -124,7 +164,7 @@ playlist.onChange(writePlaylist);
 // first one that changed plays (or waits for a click, if nothing was playing).
 async function loadFiles(files, start = 0) {
   const n = await playlist.add(files, start);
-  if (!n) { setEnum('audioState', audio.loaded ? (audio.playing ? 'playing' : 'paused') : 'empty'); return; }
+  if (!n) { setEnum('audioState', stateBeforeDrag); return; }
   await selectSlot(n);
 }
 const loadFile = (file, start = 0) => loadFiles([file], start);
@@ -140,13 +180,18 @@ function dropCount(e) {
 function showDropHint(e, start = 0) {
   if (props.dropHint) props.dropHint.value = playlist.hint(dropCount(e), start);
 }
+let stateBeforeDrag = 'empty';
 window.addEventListener('dragenter', (e) => {
   e.preventDefault();
-  if (dragDepth++ === 0) { showDropHint(e); setEnum('audioState', 'hover'); }
+  if (dragDepth++ === 0) {
+    stateBeforeDrag = props.audioState?.value || 'empty';
+    showDropHint(e);
+    setEnum('audioState', 'hover');
+  }
 });
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('dragleave', () => {
-  if (--dragDepth === 0) setEnum('audioState', audio.loaded ? (audio.playing ? 'playing' : 'paused') : 'empty');
+  if (--dragDepth === 0) setEnum('audioState', stateBeforeDrag);
 });
 window.addEventListener('drop', (e) => {
   e.preventDefault();
@@ -177,7 +222,11 @@ let prev = performance.now();
 function tick(now) {
   const dt = Math.min(0.1, (now - prev) / 1000);
   prev = now;
-  if (vm) {
+  if (vm && procActive) {
+    // the Rive file drives the visuals for its own songs
+    for (const f of frameListeners) f(audio.analyse(dt), dt);
+    watchViewModel();
+  } else if (vm) {
     const a = audio.analyse(dt);
     write('energy', a.energy);
     write('bass', a.bass);

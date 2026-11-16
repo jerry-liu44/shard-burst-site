@@ -1,5 +1,5 @@
 {
-  "note": "The eight default tracks every visitor starts with. To use a real track, put the audio file in this folder (web/tracks/) and set its \"file\", e.g. \"tracks/nightfall.mp3\", and its \"name\" (shown in the HUD, keep it short). With no file, the slot plays a synthesized placeholder made from \"synth\". A visitor's own dropped track replaces a slot in their browser only; RESTORE DEFAULT brings this one back. Slots 5-8 start as synthesized placeholder beats, rendered to WAV files (tracks/synth5.wav..) so the rive.to page can play them too: replace them with real songs the same way.",
+  "note": "The eight default tracks every visitor starts with. Slots 1-4 are audio files in this folder: to change one, put the file here and set its \"file\" (e.g. \"tracks/nightfall.mp3\") and \"name\" (shown in the HUD, keep it short). Slots 5-8 are procedural: \"proc\" 1-4 picks a song that Rive makes live (rive/audio/songs.as: AFTERBURN, MAINFRAME, GLASSHOUSE, FAULTLINE), so they need no file; give one a \"file\" instead to use a recording. A visitor's own dropped track replaces a slot in their browser only; RESTORE DEFAULT brings this one back.",
   "slots": [
     {
       "name": "DROPZONE",
@@ -47,50 +47,20 @@
       }
     },
     {
-      "name": "SYNTH 05",
-      "synth": {
-        "bpm": 128,
-        "bass": 46,
-        "kick": 110,
-        "secs": 12,
-        "hats": 0.35
-      },
-      "file": "tracks/synth5.wav"
+      "name": "AFTERBURN",
+      "proc": 1
     },
     {
-      "name": "SYNTH 06",
-      "synth": {
-        "bpm": 96,
-        "bass": 52,
-        "kick": 95,
-        "secs": 12,
-        "hats": 0.2,
-        "drop": 3
-      },
-      "file": "tracks/synth6.wav"
+      "name": "MAINFRAME",
+      "proc": 2
     },
     {
-      "name": "SYNTH 07",
-      "synth": {
-        "bpm": 150,
-        "bass": 58,
-        "kick": 125,
-        "secs": 12,
-        "hats": 0.45
-      },
-      "file": "tracks/synth7.wav"
+      "name": "GLASSHOUSE",
+      "proc": 3
     },
     {
-      "name": "SYNTH 08",
-      "synth": {
-        "bpm": 110,
-        "bass": 44,
-        "kick": 105,
-        "secs": 12,
-        "hats": 0.3,
-        "drop": 4
-      },
-      "file": "tracks/synth8.wav"
+      "name": "FAULTLINE",
+      "proc": 4
     }
   ]
 }

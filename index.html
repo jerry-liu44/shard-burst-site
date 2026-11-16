@@ -16,7 +16,10 @@
   #controls input { width: 28px; height: 20px; padding: 0; border: 0; background: none; cursor: pointer; }
   #status { position: fixed; left: 16px; bottom: 16px; font: 12px ui-monospace, Menlo, monospace; color: #c66; }
 </style>
-<script src="https://unpkg.com/@rive-app/webgl2@2.49.1/rive.js"></script>
+<!-- coi.js: cross-origin isolation on GitHub Pages (Rive audio processors need it); the threads
+     build of the runtime, as rive.to loads, runs them -->
+<script src="coi.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@rive-app/webgl2-threads@2.50.0/rive.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <canvas id="stage"></canvas>
